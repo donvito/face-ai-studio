@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Face AI Studio</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">FA</div>
+    <div><div class="brand-name">Face AI Studio</div><div class="brand-sub">local face AI demo</div></div>
+  </div>
+  <nav id="nav">
+    <button data-tab="analyze" class="active"><span>01</span>Face analysis</button>
+    <button data-tab="verify"><span>02</span>Verify 1:1</button>
+    <button data-tab="identify"><span>03</span>Identify 1:N</button>
+    <button data-tab="liveness"><span>04</span>Liveness</button>
+    <button data-tab="cluster"><span>05</span>Album clustering</button>
+    <button data-tab="privacy"><span>06</span>Video privacy</button>
+    <button data-tab="person"><span>07</span>Person tracking</button>
+  </nav>
+  <div class="runtime" id="runtime">Loading models...</div>
+  <div class="foot">Models: InsightFace pretrained packs, non-commercial research use. Photos: NASA / Wikimedia Commons, public domain. <a href="https://github.com/deepinsight/insightface" target="_blank">deepinsight/insightface</a></div>
+</aside>
+
+<main>
+  <!-- Analyze -->
+  <section id="tab-analyze" class="tab active">
+    <header><h1>Face analysis</h1><p>Detection (SCRFD), 5-point and 106-point landmarks, 3D 68-point landmarks, head pose, age and gender, and a 512-d ArcFace embedding for every face in the photo.</p></header>
+    <div class="picker" data-picker="analyze"></div>
+    <div class="toolbar">
+      <label>Model <select id="an-model"><option value="buffalo_l">buffalo_l (full pack)</option><option value="raccoon_s">raccoon_s (2.0 compact)</option></select></label>
+      <label class="chk"><input type="checkbox" data-layer="box" checked> boxes</label>
+      <label class="chk"><input type="checkbox" data-layer="kps" checked> 5 keypoints</label>
+      <label class="chk"><input type="checkbox" data-layer="lmk106" checked> 106 landmarks</label>
+      <label class="chk"><input type="checkbox" data-layer="lmk68"> 3D 68 landmarks</label>
+      <label class="chk"><input type="checkbox" data-layer="label" checked> labels</label>
+      <span class="stat" id="an-stat"></span>
+    </div>
+    <div class="split">
+      <div class="stage"><canvas id="an-canvas"></canvas><div class="empty">Pick a sample photo or drop your own</div></div>
+      <div class="cards" id="an-cards"></div>
+    </div>
+  </section>
+
+  <!-- Verify -->
+  <section id="tab-verify" class="tab">
+    <header><h1>Face verification (1:1)</h1><p>Are these two photos the same person? Each face is aligned to 112x112, embedded with ArcFace, and compared with cosine similarity.</p></header>
+    <div class="quick"><span>Try:</span>
+      <button data-pair="same">Same person, different years</button>
+      <button data-pair="hard">Same person, hard angle</button>
+      <button data-pair="diff">Different people</button>
+    </div>
+    <div class="verify-slots">
+      <div class="slot active" data-slot="a"><div class="slot-tag">A</div><img alt=""><div class="slot-hint">Click a photo below</div></div>
+      <div class="verdict" id="vf-verdict"><div class="gauge"><div class="gauge-fill"></div><div class="gauge-mark"></div></div><div class="vf-score">--</div><div class="vf-label">pick two faces</div>
+        <label class="slider">threshold <input type="range" id="vf-th" min="0.1" max="0.7" step="0.01" value="0.30"><b id="vf-thv">0.30</b></label>
+      </div>
+      <div class="slot" data-slot="b"><div class="slot-tag">B</div><img alt=""><div class="slot-hint">Click a photo below</div></div>
+    </div>
+    <div class="picker" data-picker="verify"></div>
+  </section>
+
+  <!-- Identify -->
+  <section id="tab-identify" class="tab">
+    <header><h1>Face identification (1:N)</h1><p>Enroll people into a gallery, then find them in any photo. Every face is searched against all enrolled embeddings.</p></header>
+    <div class="gallery-bar">
+      <div class="gallery" id="id-gallery"></div>
+      <form id="enroll" class="enroll">
+        <div class="enroll-title">Enroll a new person</div>
+        <input name="name" placeholder="Name" required>
+        <input name="files" type="file" accept="image/*" multiple required>
+        <button type="submit">Enroll</button>
+      </form>
+    </div>
+    <div class="toolbar">
+      <label class="slider">match threshold <input type="range" id="id-th" min="0.1" max="0.7" step="0.01" value="0.30"><b id="id-thv">0.30</b></label>
+      <span class="stat" id="id-stat"></span>
+    </div>
+    <div class="split">
+      <div class="stage"><canvas id="id-canvas"></canvas><div class="empty">Pick a group photo to search</div></div>
+      <div class="cards" id="id-cards"></div>
+    </div>
+    <div class="picker" data-picker="identify" data-default="groups"></div>
+  </section>
+
+  <!-- Liveness -->
+  <section id="tab-liveness" class="tab">
+    <header><h1>Liveness (anti-spoofing)</h1><p>InsightFace 2.0's optional RGB liveness addon scores each face as live or presentation attack (printed photo, screen replay). In <code>normal</code> mode, faces that fail are kept but skipped for recognition.</p></header>
+    <div class="picker" data-picker="liveness"></div>
+    <div class="toolbar">
+      <label class="slider">live threshold <input type="range" id="lv-th" min="0.1" max="0.99" step="0.01" value="0.80"><b id="lv-thv">0.80</b></label>
+      <label class="chk"><input type="checkbox" id="lv-spoof"> simulate screen replay (moire + glare recapture)</label>
+      <span class="stat" id="lv-stat"></span>
+    </div>
+    <div class="split">
+      <div class="stage"><canvas id="lv-canvas"></canvas><div class="empty">Pick a photo</div></div>
+      <div class="cards" id="lv-cards"></div>
+    </div>
+  </section>
+
+  <!-- Cluster -->
+  <section id="tab-cluster" class="tab">
+    <header><h1>Album clustering</h1><p>No labels needed: every face across the sample album is embedded, then grouped by similarity. This is how photo apps build "People" albums.</p></header>
+    <div class="toolbar">
+      <button class="primary" id="cl-run">Cluster the album</button>
+      <label class="slider">similarity cut <input type="range" id="cl-th" min="0.15" max="0.6" step="0.01" value="0.30"><b id="cl-thv">0.30</b></label>
+      <span class="stat" id="cl-stat"></span>
+    </div>
+    <div id="cl-out" class="clusters"></div>
+  </section>
+
+  <!-- Privacy -->
+  <section id="tab-privacy" class="tab">
+    <header><h1>Video privacy (PrivateFrame)</h1><p>InsightFace 2.0's PrivateFrame detects and tracks faces in a video, then blurs or mosaics them. It can blur everyone, only selected people, or everyone except selected people.</p></header>
+    <div class="video-pick" data-videos="privacy"></div>
+    <div class="form-row">
+      <div class="seg" id="pf-mode">
+        <button data-v="all" class="on">Blur everyone</button>
+        <button data-v="blur_only">Blur only selected</button>
+        <button data-v="exempt">Keep selected visible</button>
+      </div>
+      <div class="seg" id="pf-method">
+        <button data-v="gaussian" class="on">Gaussian</button>
+        <button data-v="mosaic">Mosaic</button>
+      </div>
+    </div>
+    <div class="people-pick" id="pf-people"></div>
+    <div class="toolbar"><button class="primary" id="pf-run">Process video</button><div class="progress" id="pf-prog"><div></div><span></span></div></div>
+    <div class="video-compare" id="pf-out"></div>
+  </section>
+
+  <!-- Person -->
+  <section id="tab-person" class="tab">
+    <header><h1>Person tracking (PersonAnalysis)</h1><p>InsightFace 2.1's PersonAnalysis finds bodies and faces in each frame and matches them to registered people by face, then by body appearance (ReID) when the face is not visible.</p></header>
+    <div class="video-pick" data-videos="person"></div>
+    <div class="people-pick" id="pa-people"></div>
+    <div class="toolbar">
+      <label>analysis rate <select id="pa-fps"><option value="5">5 fps</option><option value="10" selected>10 fps</option><option value="30">every frame</option></select></label>
+      <button class="primary" id="pa-run">Track people</button><div class="progress" id="pa-prog"><div></div><span></span></div>
+    </div>
+    <div id="pa-out"></div>
+  </section>
+</main>
+
+<div id="drop-overlay">Drop image to analyze</div>
+<div id="toast"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
